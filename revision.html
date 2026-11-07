@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f0fc">
+<title>Revision History - cnation Book</title>
+<link rel="preload" href="./fonts/IBMPlexSansKR-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/IBMPlexSansKR-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+:root{--bg-top:#eef0fb;--bg-bottom:#f8f9fd;--panel:#ffffff;--line:#edeff7;--text:#182238;--muted:#7c8598;--purple1:#8a3ffc;--purple2:#5b3df5;--radius:20px;--shadow:0 12px 28px rgba(31,41,64,.07);--font-body:'IBM Plex Sans KR',"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-head:'IBM Plex Sans KR',"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html{background:var(--bg-top)}body{margin:0;min-height:100vh;color:var(--text);background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bottom) 55%,#f9fafc 100%);font-family:var(--font-body);font-weight:400;-webkit-font-smoothing:antialiased}
+.shell{width:min(100%,760px);min-height:100vh;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(22px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:20px 22px;border-radius:26px;background:linear-gradient(120deg,var(--purple1) 0%,#7148f6 45%,var(--purple2) 100%);box-shadow:0 16px 32px rgba(90,60,240,.28)}
+.brand-small{margin:0 0 4px;color:rgba(255,255,255,.78);font-size:11px;font-weight:700;font-family:var(--font-head);letter-spacing:.13em}
+h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.03em;font-weight:700;font-family:var(--font-head)}
+.back-btn{display:inline-block;margin:0 0 16px;color:var(--muted);font-weight:700;font-family:var(--font-head);font-size:14px;text-decoration:none}
+.current-badge{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:13px 15px;border-radius:16px;background:#f1eefc;color:#5b3df5;font-size:13px;font-weight:700;font-family:var(--font-head)}
+.timeline{display:grid;gap:12px}
+.entry{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);padding:16px 18px}
+.entry-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.ver{font-size:15px;font-weight:700;font-family:var(--font-head);color:var(--purple2)}
+.date{font-size:12px;color:var(--muted);font-weight:400}
+.entry ul{margin:0;padding-left:20px;color:var(--text);font-size:13.5px;line-height:1.7}
+.entry li{margin-bottom:2px}
+footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;padding:15px 3px 3px;color:#a7aec2;font-size:11px;font-weight:700;font-family:var(--font-head)}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
+<a class="back-btn" href="./index.html">← 목록으로</a>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.1.0</span></div>
+<div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.1.0</span><span class="date">2026-11-07</span></div><ul>
+<li>버전 관리 시작 — footer에 Revision History 링크 추가, 이후 큰 변화는 두 번째 자리, 작은 변화는 세 번째 자리를 올리는 방식으로 버전 기록</li>
+</ul></div>
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.0.0</span><span class="date">2026-11-07</span></div><ul>
+<li>cnation Book 최초 배포 — 책 제목/저자 입력 시 Tavily 웹 검색 + Gemini/GitHub Models/Groq로 소개·평점·등장인물을 정리해 보여주는 기능, 조회 결과 Firestore 캐싱, 이미 정리된 책 목록 표시</li>
+</ul></div>
+
+</div>
+<footer><span>CNATION</span><span>Version 1.1.0</span></footer>
+</div>
+</body>
+</html>
