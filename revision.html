@@ -32,8 +32,14 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <div class="shell">
 <header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
 <a class="back-btn" href="./index.html">← 목록으로</a>
-<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.3.0</span></div>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.0</span></div>
 <div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.4.0</span><span class="date">2026-11-07</span></div><ul>
+<li>홈 화면의 "이미 정리된 책" 목록을 기본으로 접어두고, 펼치기/접기 버튼을 눌러 원할 때만 볼 수 있도록 변경 — 저장된 책이 많아져도 화면이 길어지지 않음</li>
+<li>목록 제목 옆에 정리된 책 개수 표시</li>
+<li>정리된 책마다 오른쪽 끝에 삭제 버튼 추가 — 누르면 "정말 삭제할까요?" 확인 후 Firebase(Firestore)에서 해당 기록을 삭제하고 목록을 새로 고침</li>
+</ul></div>
 
 <div class="entry"><div class="entry-head"><span class="ver">v1.3.0</span><span class="date">2026-11-07</span></div><ul>
 <li>전용 아이콘(돋보기, 보라색 그라디언트) 추가 및 홈 화면 바로가기(PWA) 지원 — manifest.json, favicon, apple-touch-icon 추가로 iOS/Android 모두 홈 화면에 추가해 전체화면 앱처럼 실행 가능</li>
@@ -53,7 +59,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 </ul></div>
 
 </div>
-<footer><span>CNATION</span><span>Version 1.3.0</span></footer>
+<footer><span>CNATION</span><span>Version 1.4.0</span></footer>
 </div>
 </body>
 </html>

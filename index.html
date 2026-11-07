@@ -50,11 +50,22 @@ h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;fon
 
 .section-title{display:flex;align-items:center;gap:8px;margin:0 0 11px;color:#1e2a44;font-size:13px;font-weight:700;font-family:var(--font-head);letter-spacing:.04em}
 .book-list{display:grid;gap:10px}
+.list-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin:0 0 11px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;font:inherit;text-align:left}
+.list-toggle .section-title{margin:0}
+.list-count{color:var(--muted);font-weight:600}
+.toggle-label{display:flex;align-items:center;gap:6px;color:var(--purple1);font-size:13px;font-weight:700}
+.toggle-arrow{display:inline-block;transition:transform .2s}
+.list-toggle[aria-expanded="true"] .toggle-arrow{transform:rotate(180deg)}
+#listPanel[hidden]{display:none}
 .book-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);text-align:left;color:inherit}
 .book-icon{width:52px;aspect-ratio:1;display:grid;place-items:center;border-radius:14px;font-size:22px;background:#f1eefc;color:#5b3df5}
 .book-text{min-width:0}.book-title{display:block;margin-bottom:2px;font-size:14.5px;font-weight:700;font-family:var(--font-head);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .book-author{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .book-chevron{flex-shrink:0;color:#b3bace;font-size:18px}
+.book-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.book-row .book-item{width:100%}
+.delete-btn{padding:0 14px;border:1px solid #f3d4d8;border-radius:16px;background:#fff6f7;color:#d64555;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.delete-btn:disabled{opacity:.5;cursor:default}
 .empty-list{padding:26px 16px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;font-size:13.5px;background:#fff}
 
 .status-box{display:flex;align-items:center;gap:10px;padding:16px 15px;border-radius:16px;background:#f1eefc;color:#5b3df5;font-size:13px;font-weight:700;font-family:var(--font-head);line-height:1.5;margin-bottom:18px}
@@ -138,9 +149,14 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
   </section>
   <div id="statusArea"></div>
   <section>
-    <h2 class="section-title">📚 이미 정리된 책</h2>
-    <div id="bookList" class="book-list"></div>
-    <div id="emptyList" class="empty-list">아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.</div>
+    <button id="listToggle" class="list-toggle" type="button" aria-expanded="false" aria-controls="listPanel">
+      <h2 class="section-title">📚 이미 정리된 책 <span id="listCount" class="list-count"></span></h2>
+      <span class="toggle-label"><span id="toggleText">펼치기</span><span class="toggle-arrow">▾</span></span>
+    </button>
+    <div id="listPanel" hidden>
+      <div id="bookList" class="book-list"></div>
+      <div id="emptyList" class="empty-list">아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.</div>
+    </div>
   </section>
 </main>
 <main id="detailView">
@@ -161,12 +177,12 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.3.0 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.4.0 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCTwOAC_LrrKH8CKepUOTf0pyd9qRv4y_8",
@@ -184,6 +200,13 @@ const $ = (id) => document.getElementById(id);
 const homeView = $('homeView'), detailView = $('detailView');
 const searchForm = $('searchForm'), titleInput = $('titleInput'), authorInput = $('authorInput'), searchBtn = $('searchBtn');
 const statusArea = $('statusArea'), bookList = $('bookList'), emptyList = $('emptyList');
+const listToggle = $('listToggle'), listPanel = $('listPanel'), listCount = $('listCount'), toggleText = $('toggleText');
+listToggle.addEventListener('click', () => {
+  const open = listToggle.getAttribute('aria-expanded') !== 'true';
+  listToggle.setAttribute('aria-expanded', String(open));
+  listPanel.hidden = !open;
+  toggleText.textContent = open ? '접기' : '펼치기';
+});
 const backButton = $('backButton');
 const detailTitle = $('detailTitle'), detailAuthor = $('detailAuthor'), detailMeta = $('detailMeta'), detailRating = $('detailRating');
 const detailSummary = $('detailSummary'), detailAccuracy = $('detailAccuracy'), detailParts = $('detailParts');
@@ -220,18 +243,42 @@ async function loadBookList() {
     const items = [];
     snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
     emptyList.style.display = items.length === 0 ? 'block' : 'none';
+    listCount.textContent = `(${items.length}${items.length >= 50 ? '+' : ''})`;
     items.forEach((item) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'book-item';
       btn.innerHTML = `<span class="book-icon">📖</span><span class="book-text"><span class="book-title">${safe(item.title)}</span><span class="book-author">${safe(item.author)}</span></span><span class="book-chevron">›</span>`;
       btn.addEventListener('click', () => openDetail(item));
-      bookList.appendChild(btn);
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'delete-btn';
+      del.textContent = '삭제';
+      del.setAttribute('aria-label', `${item.title || '이 책'} 삭제`);
+      del.addEventListener('click', () => deleteBook(item, del));
+      const row = document.createElement('div');
+      row.className = 'book-row';
+      row.append(btn, del);
+      bookList.appendChild(row);
     });
   } catch (error) {
     console.error('책 목록 로딩 실패:', error);
     emptyList.style.display = 'block';
     emptyList.textContent = '책 목록을 불러오지 못했습니다.';
+  }
+}
+
+async function deleteBook(item, button) {
+  const name = item.title ? `「${item.title}」` : '이 책';
+  if (!confirm(`${name} 정리 내용을 정말 삭제할까요?\n삭제하면 되돌릴 수 없습니다.`)) return;
+  button.disabled = true;
+  try {
+    await deleteDoc(doc(db, BOOK_COL, item.id));
+    await loadBookList();
+  } catch (error) {
+    console.error('책 삭제 실패:', error);
+    button.disabled = false;
+    alert('삭제하지 못했습니다. 잠시 후 다시 시도해주세요.');
   }
 }
 
