@@ -57,6 +57,13 @@ h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;fon
 .toggle-arrow{display:inline-block;transition:transform .2s}
 .list-toggle[aria-expanded="true"] .toggle-arrow{transform:rotate(180deg)}
 #listPanel[hidden]{display:none}
+.list-search{position:relative;margin:0 0 10px}
+.list-search input{width:100%;box-sizing:border-box;padding:12px 40px 12px 38px;border:1px solid var(--line);border-radius:14px;outline:none;background:#fff;color:var(--text);font:inherit;font-size:16px}
+.list-search input:focus{border-color:var(--purple2)}
+.list-search .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.list-search .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:50%;background:#eef0fb;color:var(--muted);font-size:14px;cursor:pointer}
+.list-search .clear-btn[hidden]{display:none}
+.no-match{padding:18px 16px;color:var(--muted);text-align:center;font-size:13px}
 .book-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);text-align:left;color:inherit}
 .book-icon{width:52px;aspect-ratio:1;display:grid;place-items:center;border-radius:14px;font-size:22px;background:#f1eefc;color:#5b3df5}
 .book-text{min-width:0}.book-title{display:block;margin-bottom:2px;font-size:14.5px;font-weight:700;font-family:var(--font-head);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -160,6 +167,12 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
       <span class="toggle-label"><span id="toggleText">펼치기</span><span class="toggle-arrow">▾</span></span>
     </button>
     <div id="listPanel" hidden>
+      <div class="list-search">
+        <span class="search-icon">🔍</span>
+        <input id="listSearch" type="text" enterkeyhint="search" placeholder="제목이나 작가 일부로 찾기" autocomplete="off" aria-label="정리된 책 검색">
+        <button id="listSearchClear" class="clear-btn" type="button" aria-label="검색어 지우기" hidden>✕</button>
+      </div>
+      <div id="noMatch" class="no-match" hidden></div>
       <div id="bookList" class="book-list"></div>
       <div id="emptyList" class="empty-list">아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.</div>
     </div>
@@ -184,7 +197,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.5.0 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.6.0 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
@@ -243,36 +256,59 @@ function showStatus(message, kind) {
   statusArea.appendChild(box);
 }
 
+const LIST_LIMIT = 500;
+const listSearch = $('listSearch'), listSearchClear = $('listSearchClear'), noMatch = $('noMatch');
+let allBooks = [];
+
+// 띄어쓰기·대소문자 차이는 무시하고 비교 ("히가시노게이고"로도 "히가시노 게이고"를 찾음)
+const normalize = (v) => String(v ?? '').toLowerCase().replace(/\s+/g, '');
+
+listSearch.addEventListener('input', () => renderBookList());
+listSearchClear.addEventListener('click', () => { listSearch.value = ''; renderBookList(); listSearch.focus(); });
+
 async function loadBookList() {
-  bookList.innerHTML = '';
   try {
-    const snap = await getDocs(query(collection(db, BOOK_COL), orderBy('createdAt', 'desc'), limit(50)));
+    const snap = await getDocs(query(collection(db, BOOK_COL), orderBy('createdAt', 'desc'), limit(LIST_LIMIT)));
     const items = [];
     snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+    allBooks = items;
     emptyList.style.display = items.length === 0 ? 'block' : 'none';
-    listCount.textContent = `(${items.length}${items.length >= 50 ? '+' : ''})`;
-    items.forEach((item) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'book-item';
-      btn.innerHTML = `<span class="book-icon">📖</span><span class="book-text"><span class="book-title">${safe(item.title)}</span><span class="book-author">${safe(item.author)}</span></span><span class="book-chevron">›</span>`;
-      btn.addEventListener('click', () => openDetail(item));
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'delete-btn';
-      del.textContent = '삭제';
-      del.setAttribute('aria-label', `${item.title || '이 책'} 삭제`);
-      del.addEventListener('click', () => deleteBook(item, del));
-      const row = document.createElement('div');
-      row.className = 'book-row';
-      row.append(btn, del);
-      bookList.appendChild(row);
-    });
+    listCount.textContent = `(${items.length}${items.length >= LIST_LIMIT ? '+' : ''})`;
+    renderBookList();
   } catch (error) {
     console.error('책 목록 로딩 실패:', error);
+    bookList.innerHTML = '';
     emptyList.style.display = 'block';
     emptyList.textContent = '책 목록을 불러오지 못했습니다.';
   }
+}
+
+function renderBookList() {
+  bookList.innerHTML = '';
+  const keyword = normalize(listSearch.value);
+  listSearchClear.hidden = !listSearch.value;
+  const items = keyword
+    ? allBooks.filter((b) => [b.title, b.author, b.originalTitle].some((v) => normalize(v).includes(keyword)))
+    : allBooks;
+  noMatch.hidden = !(keyword && allBooks.length && !items.length);
+  noMatch.textContent = `"${listSearch.value.trim()}"에 맞는 책이 없습니다.`;
+  items.forEach((item) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'book-item';
+    btn.innerHTML = `<span class="book-icon">📖</span><span class="book-text"><span class="book-title">${safe(item.title)}</span><span class="book-author">${safe(item.author)}</span></span><span class="book-chevron">›</span>`;
+    btn.addEventListener('click', () => openDetail(item));
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'delete-btn';
+    del.textContent = '삭제';
+    del.setAttribute('aria-label', `${item.title || '이 책'} 삭제`);
+    del.addEventListener('click', () => deleteBook(item, del));
+    const row = document.createElement('div');
+    row.className = 'book-row';
+    row.append(btn, del);
+    bookList.appendChild(row);
+  });
 }
 
 async function deleteBook(item, button) {
