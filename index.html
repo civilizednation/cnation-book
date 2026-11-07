@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f0fc">
+<title>cnation Book</title>
+
+<link rel="preload" href="./fonts/IBMPlexSansKR-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/IBMPlexSansKR-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+:root{--bg-top:#eef0fb;--bg-bottom:#f8f9fd;--panel:#ffffff;--line:#edeff7;--text:#182238;--muted:#7c8598;--purple1:#8a3ffc;--purple2:#5b3df5;--radius:20px;--shadow:0 12px 28px rgba(31,41,64,.07);--font-body:'IBM Plex Sans KR',"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-head:'IBM Plex Sans KR',"Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html{background:var(--bg-top)}body{margin:0;min-height:100vh;color:var(--text);background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bottom) 55%,#f9fafc 100%);font-family:var(--font-body);font-weight:400;-webkit-font-smoothing:antialiased}
+button,input{font:inherit}button{-webkit-tap-highlight-color:transparent;cursor:pointer}
+.shell{width:min(100%,760px);min-height:100vh;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(22px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;padding:20px 22px;border-radius:26px;background:linear-gradient(120deg,var(--purple1) 0%,#7148f6 45%,var(--purple2) 100%);box-shadow:0 16px 32px rgba(90,60,240,.28)}
+.brand-small{margin:0 0 4px;color:rgba(255,255,255,.78);font-size:11px;font-weight:700;font-family:var(--font-head);letter-spacing:.13em}
+h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;font-weight:700;font-family:var(--font-head)}
+.intro{margin:0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.6}
+
+#homeView{display:none}#homeView.active{display:block}
+#detailView{display:none}#detailView.active{display:block}
+
+.search-card{padding:18px;border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:22px}
+.search-row{display:grid;gap:10px;grid-template-columns:1fr}
+.search-row input{padding:13px 14px;border:1px solid var(--line);border-radius:14px;outline:none;background:#fafbff;color:var(--text);font-size:14px}
+.search-row input:focus{border-color:var(--purple2);background:#fff}
+.search-btn{margin-top:4px;min-height:48px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--purple1),var(--purple2));color:#fff;font-weight:700;font-family:var(--font-head);font-size:14.5px;box-shadow:0 10px 20px rgba(90,60,240,.25)}
+.search-btn:disabled{opacity:.6;cursor:default}
+.search-note{margin:10px 0 0;color:var(--muted);font-size:11.5px;line-height:1.6}
+
+.section-title{display:flex;align-items:center;gap:8px;margin:0 0 11px;color:#1e2a44;font-size:13px;font-weight:700;font-family:var(--font-head);letter-spacing:.04em}
+.book-list{display:grid;gap:10px}
+.book-item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);text-align:left;color:inherit}
+.book-icon{width:52px;aspect-ratio:1;display:grid;place-items:center;border-radius:14px;font-size:22px;background:#f1eefc;color:#5b3df5}
+.book-text{min-width:0}.book-title{display:block;margin-bottom:2px;font-size:14.5px;font-weight:700;font-family:var(--font-head);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-author{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-chevron{flex-shrink:0;color:#b3bace;font-size:18px}
+.empty-list{padding:26px 16px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;font-size:13.5px;background:#fff}
+
+.status-box{display:flex;align-items:center;gap:10px;padding:16px 15px;border-radius:16px;background:#f1eefc;color:#5b3df5;font-size:13px;font-weight:700;font-family:var(--font-head);line-height:1.5;margin-bottom:18px}
+.status-box.error{background:#fdecec;color:#c0392b}
+.spinner{flex-shrink:0;width:18px;height:18px;border-radius:50%;border:3px solid rgba(91,61,245,.25);border-top-color:#5b3df5;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.back-btn{margin:0 0 14px;padding:7px 0;border:0;background:transparent;color:var(--muted);font-weight:700;font-family:var(--font-head);font-size:13.5px}
+.detail-card{padding:22px;border:1px solid var(--line);border-radius:26px;background:var(--panel);box-shadow:var(--shadow)}
+.detail-top{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:space-between}
+.detail-title{margin:0 0 4px;font-size:21px;line-height:1.3;letter-spacing:-.01em;color:var(--text);font-weight:700;font-family:var(--font-head)}
+.detail-author{margin:0;color:var(--muted);font-size:13.5px}
+.detail-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.meta-chip{padding:5px 11px;border-radius:999px;background:#f4f5fb;color:#4a5570;font-size:11.5px;font-weight:700;font-family:var(--font-head)}
+.rating-chip{padding:7px 13px;border-radius:14px;background:linear-gradient(135deg,#ffb84d,#ff8c3f);color:#fff;font-weight:700;font-family:var(--font-head);font-size:13px;flex-shrink:0;white-space:nowrap}
+.rating-chip .scale{font-size:10.5px;font-weight:400;opacity:.85;margin-left:2px}
+.rating-chip.none{background:#f4f5fb;color:var(--muted)}
+
+.section{margin-top:24px}
+.section h3{margin:0 0 10px;font-size:14px;color:var(--text);font-weight:700;font-family:var(--font-head)}
+.summary p{margin:0 0 10px;color:#3d4864;font-size:14px;line-height:1.75}
+.summary p:last-child{margin-bottom:0}
+
+.accuracy-box{margin-top:16px;padding:12px 14px;border-radius:14px;background:#eef3ff;color:#2d4f8f;font-size:12px;line-height:1.65}
+
+.part-block{margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.part-block:first-child{margin-top:24px;padding-top:0;border-top:0}
+.part-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.part-title{margin:0;font-size:16px;font-weight:700;font-family:var(--font-head);color:var(--text)}
+.part-title .orig{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+.spoiler-badge{flex-shrink:0;padding:4px 10px;border-radius:999px;background:#eafaf0;color:#1f9d55;font-size:10.5px;font-weight:700;font-family:var(--font-head);white-space:nowrap}
+.premise{margin:8px 0 16px;padding:11px 13px;border-radius:12px;background:#fafbff;color:#4a5570;font-size:12.5px;line-height:1.65}
+.premise b{color:#5b3df5;font-family:var(--font-head)}
+
+.sub-h4{margin:0 0 9px;font-size:12px;font-weight:700;font-family:var(--font-head);color:#4a5570;letter-spacing:.02em}
+.char-list{display:grid;gap:9px;margin-bottom:16px}
+.char-item{padding:13px 14px;border:1px solid var(--line);border-radius:15px;background:#fafbff}
+.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.char-name{font-size:14px;font-weight:700;font-family:var(--font-head);color:var(--text)}
+.char-role{flex-shrink:0;padding:3px 9px;border-radius:999px;background:#eef0fb;color:#5b3df5;font-size:10.5px;font-weight:700;font-family:var(--font-head)}
+.char-points{margin:0;padding-left:17px;color:var(--muted);font-size:12.5px;line-height:1.65}
+.char-points li{margin-bottom:2px}
+.char-points li:last-child{margin-bottom:0}
+
+.support-list{display:grid;gap:5px;margin-bottom:16px}
+.support-row{display:flex;gap:8px;padding:8px 12px;border-radius:10px;background:#f4f5fb;font-size:12.5px;line-height:1.5}
+.support-row .s-name{flex-shrink:0;font-weight:700;font-family:var(--font-head);color:var(--text);min-width:92px}
+.support-row .s-relation{color:var(--muted)}
+
+.relationship-summary{margin:0;padding:12px 14px;border-radius:12px;background:#f1eefc;color:#4a3f8f;font-size:12.5px;line-height:1.7}
+.relationship-summary b{font-family:var(--font-head);color:#5b3df5}
+
+.tips-list{margin:0;padding-left:19px;color:#4a5570;font-size:13px;line-height:1.75}
+.tips-list li{margin-bottom:4px}
+
+.source-list{display:grid;gap:8px}
+.source-list .source-row{display:block}
+.source-list a{display:block;overflow-wrap:anywhere;color:#5b3df5;text-decoration:none;font-size:12.5px;line-height:1.6}
+.source-list .source-note{color:var(--muted);font-size:11.5px;margin-top:1px}
+
+.notice-box{margin-top:18px;padding:12px 14px;border-radius:14px;background:#fff8ec;color:#92650e;font-size:12.5px;line-height:1.6}
+.disclaimer{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);color:#a7aec2;font-size:11px;line-height:1.6}
+
+footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;padding:15px 3px 3px;color:#a7aec2;font-size:11px;font-weight:700;font-family:var(--font-head)}
+@media (hover:hover){.book-item:hover{transform:translateY(-1px);box-shadow:0 16px 30px rgba(31,41,64,.1)}.search-btn:hover:not(:disabled){filter:brightness(1.04)}}
+@media (min-width:700px){.shell{padding-left:26px;padding-right:26px}.search-row{grid-template-columns:1fr 1fr}.search-btn{grid-column:1/-1}.detail-card{padding:28px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><div><p class="brand-small">CNATION BOOK</p><h1>책 등장인물 도감</h1></div></header>
+<main id="homeView" class="active">
+  <p class="intro">책 제목과 저자를 입력하면, 공식적으로 알려진 정보만 모아 소개·평점·등장인물을 정리해드립니다.</p>
+  <section class="search-card">
+    <form id="searchForm" class="search-row">
+      <input id="titleInput" type="text" placeholder="책 제목 (예: 어린 왕자)" autocomplete="off" required>
+      <input id="authorInput" type="text" placeholder="저자 (예: 앙투안 드 생텍쥐페리)" autocomplete="off" required>
+      <button id="searchBtn" class="search-btn" type="submit">📖 조회하기</button>
+    </form>
+    <p class="search-note">이미 조회한 책은 저장해두었다가 바로 보여드려요. 처음 조회하는 책은 웹 검색 후 정리하는 데 10~20초 정도 걸릴 수 있습니다.</p>
+  </section>
+  <div id="statusArea"></div>
+  <section>
+    <h2 class="section-title">📚 이미 정리된 책</h2>
+    <div id="bookList" class="book-list"></div>
+    <div id="emptyList" class="empty-list">아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.</div>
+  </section>
+</main>
+<main id="detailView">
+  <button id="backButton" class="back-btn" type="button">← 목록으로</button>
+  <section class="detail-card">
+    <div class="detail-top">
+      <div><h2 id="detailTitle" class="detail-title"></h2><p id="detailAuthor" class="detail-author"></p>
+        <div id="detailMeta" class="detail-meta"></div>
+      </div>
+      <div id="detailRating" class="rating-chip none">평점 정보 없음</div>
+    </div>
+    <section class="section"><h3>소개</h3><div id="detailSummary" class="summary"></div></section>
+    <div id="detailAccuracy" class="accuracy-box" style="display:none"></div>
+    <div id="detailParts"></div>
+    <section id="tipsSection" class="section" style="display:none"><h3>읽을 때 참고하면 좋은 점</h3><ul id="detailTips" class="tips-list"></ul></section>
+    <section class="section"><h3>출처</h3><div id="detailSources" class="source-list"></div></section>
+    <div id="detailNotice" class="notice-box" style="display:none"></div>
+    <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
+  </section>
+</main>
+<footer><span>CNATION</span><span>cnation Book · v1.0.0</span></footer>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCTwOAC_LrrKH8CKepUOTf0pyd9qRv4y_8",
+  authDomain: "cnation-project.firebaseapp.com",
+  projectId: "cnation-project",
+  storageBucket: "cnation-project.firebasestorage.app",
+  messagingSenderId: "1004154104261",
+  appId: "1:1004154104261:web:0eac4c7ded38262ae5c3ac",
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const BOOK_COL = "cnation-book-entries";
+
+const $ = (id) => document.getElementById(id);
+const homeView = $('homeView'), detailView = $('detailView');
+const searchForm = $('searchForm'), titleInput = $('titleInput'), authorInput = $('authorInput'), searchBtn = $('searchBtn');
+const statusArea = $('statusArea'), bookList = $('bookList'), emptyList = $('emptyList');
+const backButton = $('backButton');
+const detailTitle = $('detailTitle'), detailAuthor = $('detailAuthor'), detailMeta = $('detailMeta'), detailRating = $('detailRating');
+const detailSummary = $('detailSummary'), detailAccuracy = $('detailAccuracy'), detailParts = $('detailParts');
+const tipsSection = $('tipsSection'), detailTips = $('detailTips');
+const detailSources = $('detailSources'), detailNotice = $('detailNotice');
+
+function safe(v) { return String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
+
+function slugKey(title, author) {
+  const raw = `${title.trim().toLowerCase()}__${author.trim().toLowerCase()}`;
+  return raw.replace(/\s+/g, ' ').replace(/[\/\.\#\$\[\]]/g, '-').slice(0, 400) || 'untitled';
+}
+
+function showStatus(message, kind) {
+  statusArea.innerHTML = '';
+  if (!message) return;
+  const box = document.createElement('div');
+  box.className = `status-box${kind === 'error' ? ' error' : ''}`;
+  if (kind !== 'error') {
+    const spin = document.createElement('div');
+    spin.className = 'spinner';
+    box.appendChild(spin);
+  }
+  const text = document.createElement('span');
+  text.textContent = message;
+  box.appendChild(text);
+  statusArea.appendChild(box);
+}
+
+async function loadBookList() {
+  bookList.innerHTML = '';
+  try {
+    const snap = await getDocs(query(collection(db, BOOK_COL), orderBy('createdAt', 'desc'), limit(50)));
+    const items = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+    emptyList.style.display = items.length === 0 ? 'block' : 'none';
+    items.forEach((item) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'book-item';
+      btn.innerHTML = `<span class="book-icon">📖</span><span class="book-text"><span class="book-title">${safe(item.title)}</span><span class="book-author">${safe(item.author)}</span></span><span class="book-chevron">›</span>`;
+      btn.addEventListener('click', () => openDetail(item));
+      bookList.appendChild(btn);
+    });
+  } catch (error) {
+    console.error('책 목록 로딩 실패:', error);
+    emptyList.style.display = 'block';
+    emptyList.textContent = '책 목록을 불러오지 못했습니다.';
+  }
+}
+
+function renderDetail(data) {
+  detailTitle.textContent = data.title || '';
+  detailAuthor.textContent = data.author || '';
+  detailMeta.innerHTML = '';
+  [
+    data.genre,
+    data.format,
+    data.publisher && `${data.publisher}`,
+    data.publishedDate,
+    data.originalTitle && `원제: ${data.originalTitle}`,
+  ]
+    .filter(Boolean)
+    .forEach((text) => {
+      const chip = document.createElement('span');
+      chip.className = 'meta-chip';
+      chip.textContent = text;
+      detailMeta.appendChild(chip);
+    });
+
+  const rating = data.rating || {};
+  if (rating.score) {
+    detailRating.className = 'rating-chip';
+    detailRating.innerHTML = `⭐ ${safe(rating.score)}${rating.scale ? `<span class="scale">/${safe(rating.scale)}</span>` : ''}`;
+    if (rating.source) detailRating.title = rating.source;
+  } else {
+    detailRating.className = 'rating-chip none';
+    detailRating.textContent = '평점 정보 없음';
+  }
+
+  detailSummary.innerHTML = (data.summary || '소개 정보가 없습니다.')
+    .split(/\n{2,}/)
+    .map((p) => `<p>${safe(p)}</p>`)
+    .join('');
+
+  if (data.accuracyNote) {
+    detailAccuracy.style.display = 'block';
+    detailAccuracy.textContent = `🔍 ${data.accuracyNote}`;
+  } else {
+    detailAccuracy.style.display = 'none';
+  }
+
+  renderParts(Array.isArray(data.parts) ? data.parts : [], data.spoilerNote);
+
+  if (Array.isArray(data.readingTips) && data.readingTips.length) {
+    tipsSection.style.display = 'block';
+    detailTips.innerHTML = data.readingTips.map((t) => `<li>${safe(t)}</li>`).join('');
+  } else {
+    tipsSection.style.display = 'none';
+  }
+
+  detailSources.innerHTML = '';
+  const sources = Array.isArray(data.sources) ? data.sources : [];
+  sources.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'source-row';
+    const link = document.createElement('a');
+    link.href = s.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = `[${i + 1}] ${s.title || s.url}`;
+    row.appendChild(link);
+    if (s.note) {
+      const note = document.createElement('div');
+      note.className = 'source-note';
+      note.textContent = s.note;
+      row.appendChild(note);
+    }
+    detailSources.appendChild(row);
+  });
+  if (!sources.length) detailSources.innerHTML = '<p class="char-points">출처 정보가 없습니다.</p>';
+
+  if (data.notice) {
+    detailNotice.style.display = 'block';
+    detailNotice.textContent = `ℹ️ ${data.notice}`;
+  } else {
+    detailNotice.style.display = 'none';
+  }
+}
+
+function renderParts(parts, spoilerNote) {
+  detailParts.innerHTML = '';
+  const multi = parts.length > 1;
+  parts.forEach((part, index) => {
+    const block = document.createElement('section');
+    block.className = 'part-block';
+
+    const head = document.createElement('div');
+    head.className = 'part-head';
+    const h = document.createElement('h3');
+    h.className = 'part-title';
+    const label = multi ? `${index + 1}. ${part.title || ''}` : '등장인물';
+    h.innerHTML = `${safe(label)}${part.originalTitle ? `<span class="orig">${safe(part.originalTitle)}</span>` : ''}`;
+    head.appendChild(h);
+    if (index === 0 && spoilerNote) {
+      const badge = document.createElement('span');
+      badge.className = 'spoiler-badge';
+      badge.textContent = '🙈 스포일러 없이 정리';
+      badge.title = spoilerNote;
+      head.appendChild(badge);
+    }
+    block.appendChild(head);
+
+    if (part.premise) {
+      const premise = document.createElement('p');
+      premise.className = 'premise';
+      premise.innerHTML = `<b>${multi ? '사건의 중심 — ' : ''}</b>${safe(part.premise)}`;
+      block.appendChild(premise);
+    }
+
+    const mainChars = Array.isArray(part.mainCharacters) ? part.mainCharacters : [];
+    if (mainChars.length) {
+      const subH = document.createElement('p');
+      subH.className = 'sub-h4';
+      subH.textContent = '주요 등장인물';
+      block.appendChild(subH);
+      const list = document.createElement('div');
+      list.className = 'char-list';
+      mainChars.forEach((c) => {
+        const item = document.createElement('div');
+        item.className = 'char-item';
+        const points = Array.isArray(c.points) ? c.points : [];
+        item.innerHTML = `<div class="char-head"><span class="char-name">${safe(c.name)}</span>${c.role ? `<span class="char-role">${safe(c.role)}</span>` : ''}</div>` +
+          (points.length ? `<ul class="char-points">${points.map((p) => `<li>${safe(p)}</li>`).join('')}</ul>` : '');
+        list.appendChild(item);
+      });
+      block.appendChild(list);
+    }
+
+    const supportChars = Array.isArray(part.supportingCharacters) ? part.supportingCharacters : [];
+    if (supportChars.length) {
+      const subH = document.createElement('p');
+      subH.className = 'sub-h4';
+      subH.textContent = '추가 등장인물';
+      block.appendChild(subH);
+      const list = document.createElement('div');
+      list.className = 'support-list';
+      supportChars.forEach((c) => {
+        const row = document.createElement('div');
+        row.className = 'support-row';
+        row.innerHTML = `<span class="s-name">${safe(c.name)}</span><span class="s-relation">${safe(c.relation || '')}</span>`;
+        list.appendChild(row);
+      });
+      block.appendChild(list);
+    }
+
+    if (part.relationshipSummary) {
+      const rel = document.createElement('p');
+      rel.className = 'relationship-summary';
+      rel.innerHTML = `<b>인물 관계 핵심 — </b>${safe(part.relationshipSummary)}`;
+      block.appendChild(rel);
+    }
+
+    detailParts.appendChild(block);
+  });
+  if (!parts.length) {
+    detailParts.innerHTML = '<p class="char-points">확인된 등장인물 정보가 없습니다.</p>';
+  }
+}
+
+function openDetail(data, updateHistory = true) {
+  renderDetail(data);
+  homeView.classList.remove('active');
+  detailView.classList.add('active');
+  window.scrollTo(0, 0);
+  if (updateHistory) history.pushState({ key: data.id || slugKey(data.title, data.author) }, '', `#${encodeURIComponent(data.id || slugKey(data.title, data.author))}`);
+}
+
+function showHome(updateHistory = true) {
+  detailView.classList.remove('active');
+  homeView.classList.add('active');
+  window.scrollTo(0, 0);
+  if (updateHistory) history.pushState({}, '', location.pathname + location.search);
+}
+
+searchForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const title = titleInput.value.trim();
+  const author = authorInput.value.trim();
+  if (!title || !author) return;
+
+  const key = slugKey(title, author);
+  searchBtn.disabled = true;
+  showStatus('저장된 정보를 확인하는 중...', 'loading');
+
+  try {
+    const cached = await getDoc(doc(db, BOOK_COL, key));
+    if (cached.exists()) {
+      showStatus('', null);
+      openDetail({ id: key, ...cached.data() });
+      searchBtn.disabled = false;
+      return;
+    }
+
+    showStatus('웹에서 공식 정보를 찾아 정리하는 중... (10~20초 정도 걸려요)', 'loading');
+    const res = await fetch('/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, author }),
+    });
+    const result = await res.json().catch(() => ({ ok: false, error: `요청 실패 (HTTP ${res.status})` }));
+    if (!result.ok) throw new Error(result.error || '조회에 실패했습니다.');
+
+    const record = { ...result.data, createdAt: serverTimestamp() };
+    await setDoc(doc(db, BOOK_COL, key), record);
+    showStatus('', null);
+    openDetail({ id: key, ...result.data });
+    loadBookList();
+  } catch (error) {
+    showStatus(`오류: ${error.message}`, 'error');
+  } finally {
+    searchBtn.disabled = false;
+  }
+});
+
+backButton.addEventListener('click', () => location.hash ? history.back() : showHome());
+window.addEventListener('popstate', () => {
+  const hash = decodeURIComponent(location.hash.replace('#', ''));
+  if (hash) {
+    getDoc(doc(db, BOOK_COL, hash)).then((snap) => {
+      if (snap.exists()) openDetail({ id: hash, ...snap.data() }, false);
+      else showHome(false);
+    });
+    return;
+  }
+  showHome(false);
+});
+
+loadBookList();
+const initialHash = decodeURIComponent(location.hash.replace('#', ''));
+if (initialHash) {
+  getDoc(doc(db, BOOK_COL, initialHash)).then((snap) => { if (snap.exists()) openDetail({ id: initialHash, ...snap.data() }, false); });
+}
+</script>
+</body>
+</html>
