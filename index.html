@@ -106,6 +106,12 @@ h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;fon
 .char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .char-name{font-size:14px;font-weight:700;font-family:var(--font-head);color:var(--text)}
 .char-role{flex-shrink:0;padding:3px 9px;border-radius:999px;background:#eef0fb;color:#5b3df5;font-size:10.5px;font-weight:700;font-family:var(--font-head)}
+.char-tags{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.conf-badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;font-family:var(--font-head);white-space:nowrap}
+.conf-badge.multi{background:#e8f7ee;color:#1f7a45}
+.conf-badge.single{background:#fff4e0;color:#9a6512}
+.s-conf{flex-shrink:0;margin-left:auto;font-size:10px;font-weight:700;color:#9a6512}
+.gen-info{margin-top:10px;color:var(--muted);font-size:11.5px;line-height:1.6}
 .char-points{margin:0;padding-left:17px;color:var(--muted);font-size:12.5px;line-height:1.65}
 .char-points li{margin-bottom:2px}
 .char-points li:last-child{margin-bottom:0}
@@ -145,7 +151,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
       <input id="authorInput" type="text" placeholder="저자 (예: 앙투안 드 생텍쥐페리)" autocomplete="off" required>
       <button id="searchBtn" class="search-btn" type="submit">📖 조회하기</button>
     </form>
-    <p class="search-note">이미 조회한 책은 저장해두었다가 바로 보여드려요. 처음 조회하는 책은 웹 검색 후 정리하는 데 10~20초 정도 걸릴 수 있습니다.</p>
+    <p class="search-note">이미 조회한 책은 저장해두었다가 바로 보여드려요. 처음 조회하는 책은 서점·위키·AI 검색 자료를 모아 교차 확인까지 하느라 1~2분 정도 걸릴 수 있습니다.</p>
   </section>
   <div id="statusArea"></div>
   <section>
@@ -174,10 +180,11 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <section id="tipsSection" class="section" style="display:none"><h3>읽을 때 참고하면 좋은 점</h3><ul id="detailTips" class="tips-list"></ul></section>
     <section class="section"><h3>출처</h3><div id="detailSources" class="source-list"></div></section>
     <div id="detailNotice" class="notice-box" style="display:none"></div>
+    <p id="detailGenInfo" class="gen-info" style="display:none"></p>
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.4.0 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.5.0 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
@@ -359,6 +366,26 @@ function renderDetail(data) {
   } else {
     detailNotice.style.display = 'none';
   }
+
+  const gen = data.generatedBy;
+  const genInfo = $('detailGenInfo');
+  if (gen && gen.draft) {
+    const parts = [`근거 자료 ${gen.evidenceCount || 0}건`];
+    if (gen.aiSearch) parts.push(`AI 검색: ${gen.aiSearch}`);
+    parts.push(`정리: ${gen.draft}`);
+    parts.push(gen.verify ? `교차 확인: ${gen.verify}` : '교차 확인: 미완료');
+    genInfo.textContent = `🤖 ${parts.join(' · ')}`;
+    genInfo.style.display = 'block';
+  } else {
+    genInfo.textContent = '🤖 이전 방식으로 정리된 책입니다. 정확도가 낮을 수 있으니 삭제 후 다시 조회해보세요.';
+    genInfo.style.display = 'block';
+  }
+}
+
+function confBadge(confidence) {
+  if (confidence === 'multi') return '<span class="conf-badge multi" title="서로 다른 출처 2곳 이상에서 확인">✓ 교차 확인</span>';
+  if (confidence === 'single') return '<span class="conf-badge single" title="출처 1곳에서만 확인된 참고 정보">참고 정보</span>';
+  return '';
 }
 
 function renderParts(parts, spoilerNote) {
@@ -403,7 +430,7 @@ function renderParts(parts, spoilerNote) {
         const item = document.createElement('div');
         item.className = 'char-item';
         const points = Array.isArray(c.points) ? c.points : [];
-        item.innerHTML = `<div class="char-head"><span class="char-name">${safe(c.name)}</span>${c.role ? `<span class="char-role">${safe(c.role)}</span>` : ''}</div>` +
+        item.innerHTML = `<div class="char-head"><span class="char-name">${safe(c.name)}</span><span class="char-tags">${confBadge(c.confidence)}${c.role ? `<span class="char-role">${safe(c.role)}</span>` : ''}</span></div>` +
           (points.length ? `<ul class="char-points">${points.map((p) => `<li>${safe(p)}</li>`).join('')}</ul>` : '');
         list.appendChild(item);
       });
@@ -421,10 +448,17 @@ function renderParts(parts, spoilerNote) {
       supportChars.forEach((c) => {
         const row = document.createElement('div');
         row.className = 'support-row';
-        row.innerHTML = `<span class="s-name">${safe(c.name)}</span><span class="s-relation">${safe(c.relation || '')}</span>`;
+        row.innerHTML = `<span class="s-name">${safe(c.name)}</span><span class="s-relation">${safe(c.relation || '')}</span>${c.confidence === 'single' ? '<span class="s-conf" title="출처 1곳에서만 확인된 참고 정보">참고</span>' : ''}`;
         list.appendChild(row);
       });
       block.appendChild(list);
+    }
+
+    if (!mainChars.length && !supportChars.length) {
+      const none = document.createElement('p');
+      none.className = 'char-points';
+      none.textContent = '이 편의 등장인물은 근거 자료에서 확인하지 못했습니다.';
+      block.appendChild(none);
     }
 
     if (part.relationshipSummary) {
@@ -475,7 +509,7 @@ searchForm.addEventListener('submit', async (event) => {
       return;
     }
 
-    showStatus('웹에서 공식 정보를 찾아 정리하는 중... (10~20초 정도 걸려요)', 'loading');
+    showStatus('서점·위키·AI 검색 자료를 모아 정리하고 교차 확인하는 중... (1~2분 정도 걸려요)', 'loading');
     const res = await fetch('/api/lookup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

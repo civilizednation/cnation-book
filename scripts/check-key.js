@@ -14,4 +14,7 @@ if (!result.ok) {
   process.exit(1);
 }
 const charCount = result.data.parts.reduce((sum, p) => sum + (p.mainCharacters?.length || 0) + (p.supportingCharacters?.length || 0), 0);
-console.log(`✅ ${result.provider} (${result.model}) — "${result.data.title}" 조회 성공, ${result.data.parts.length}편, 등장인물 ${charCount}명`);
+const g = result.data.generatedBy || {};
+console.log(`✅ "${result.data.title}" 조회 성공, ${result.data.parts.length}편, 등장인물 ${charCount}명`);
+console.log(`   정리: ${g.draft || '-'} / 교차 확인: ${g.verify || '실패'} / AI 검색: ${g.aiSearch || '건너뜀'} / 근거 ${g.evidenceCount ?? 0}건`);
+if (result.data.notice) console.log(`   안내: ${result.data.notice}`);

@@ -7,7 +7,12 @@ https://cnation-book.vercel.app (배포 후)
 ## 동작 방식
 
 1. 책 제목/저자를 입력하면 먼저 Firestore(`cnation-book-entries` 컬렉션)에 이미 정리된 기록이 있는지 확인합니다.
-2. 있으면 바로 보여주고, 없으면 Tavily로 웹 검색 → Gemini → GitHub Models → Groq 순으로 AI에게 검색 결과를 근거로 구조화된 JSON을 만들게 합니다.
+2. 있으면 바로 보여주고, 없으면 무료 서비스만으로 다음 과정을 거칩니다.
+   - **근거 수집 (동시에)**: Tavily로 서점(예스24·교보문고·알라딘) 상세 페이지, 위키(한국어/일본어 위키백과·나무위키), 일반 웹을 따로 검색해 페이지 본문까지 받고, Gemini의 Google 검색 연동으로 "AI 검색 요약"을 한 갈래 더 모읍니다.
+   - **정리**: Gemini(실패 시 GitHub Models)가 근거를 종합해 초안 JSON을 만듭니다.
+   - **편별 보강**: 단편집이면 편마다 따로 추가 검색합니다.
+   - **교차 확인**: 근거 전체를 읽을 수 있는 모델이 초안을 근거와 하나씩 대조해, 근거 없는 내용은 지우고 인물마다 신뢰도(`multi` = 출처 2곳 이상, `single` = 1곳)를 매깁니다.
+   - 출처는 AI가 고른 근거 번호를 실제 검색된 URL로 바꿔서 표시합니다 (지어낸 링크 방지). 소형 모델(Groq)은 정확도 문제로 쓰지 않습니다.
 3. 결과를 Firestore에 저장해두고 화면에 보여줍니다. 다음에 같은 책을 조회하면 저장된 내용을 그대로 보여줍니다.
 4. 홈 화면 하단에는 이미 정리된 책 목록이 떠서, 다시 검색하지 않고도 선택해서 볼 수 있습니다.
 
@@ -15,10 +20,11 @@ https://cnation-book.vercel.app (배포 후)
 
 - `index.html` — 검색 화면 + 정리된 책 목록 + 상세 화면 (Firebase 클라이언트 SDK로 직접 Firestore 읽기/쓰기)
 - `api/lookup.js` — Vercel 함수: `POST /api/lookup { title, author }` → 구조화된 JSON
-- `lib/book-lookup.js` — 조회 오케스트레이션 (검색 → AI 순차 시도 → JSON 파싱, 실패 시 다음 AI로)
-- `lib/search.js` — Tavily 웹 검색 (소개/평점용, 등장인물용 질의를 나눠 병렬 검색 후 병합)
-- `lib/prompt.js` — AI에게 보낼 지시문과 응답 JSON 형식 정의
-- `lib/providers/` — Gemini, GitHub Models, Groq 호출 (구조화된 JSON 한 번에 받기 위해 스트리밍 없이 완결 응답만 사용)
+- `lib/book-lookup.js` — 조회 오케스트레이션 (근거 수집 → 정리 → 편별 보강 → 교차 확인 → 출처 정리)
+- `lib/search.js` — Tavily 웹 검색 (서점·위키·일반 웹을 나눠 병렬 검색, 페이지 본문 포함, 단편별 추가 검색)
+- `lib/ai-research.js` — Gemini + Google 검색 연동 "AI 검색 요약" (보조 근거)
+- `lib/prompt.js` — 정리·교차 확인 단계의 지시문과 응답 JSON 형식 정의
+- `lib/providers/` — Gemini, GitHub Models 호출 (Groq 코드는 남아 있지만 조회에는 쓰지 않음) (구조화된 JSON 한 번에 받기 위해 스트리밍 없이 완결 응답만 사용)
 - `fonts/` — 자체 호스팅 전용 폰트 (IBM Plex Sans KR, cnation 공통)
 
 ## 응답 JSON 형식 (`lib/prompt.js` 참고)
@@ -28,7 +34,7 @@ https://cnation-book.vercel.app (배포 후)
 ## 로컬 실행
 
 ```bash
-cp .env.example .env   # 키 입력 (GEMINI_API_KEY, GITHUB_MODELS_TOKEN, GROQ_API_KEY, TAVILY_API_KEY)
+cp .env.example .env   # 키 입력 (GEMINI_API_KEY, GITHUB_MODELS_TOKEN, TAVILY_API_KEY)
 npm run dev             # http://localhost:3000
 npm run check            # 등록된 키로 실제 조회 테스트 ("어린 왕자"로 확인)
 ```
