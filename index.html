@@ -6,8 +6,25 @@
 <meta name="theme-color" content="#f2f0fc">
 <title>cnation Book</title>
 
+<!-- PWA manifest -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- Favicon -->
+<link rel="icon" href="./favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+
 <link rel="preload" href="./fonts/IBMPlexSansKR-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="./fonts/IBMPlexSansKR-Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+<!-- iOS: 홈 화면에 추가 시 전체화면(standalone)으로 실행 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="cnation Book">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<!-- Android/Chrome: 홈 화면에 추가 시 전체화면(standalone)으로 실행 -->
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 @font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:'IBM Plex Sans KR';src:url('./fonts/IBMPlexSansKR-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
@@ -144,7 +161,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.2.0 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.3.0 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
