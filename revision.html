@@ -32,8 +32,13 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <div class="shell">
 <header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
 <a class="back-btn" href="./index.html">← 목록으로</a>
-<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.4</span></div>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.5</span></div>
 <div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.4.5</span><span class="date">2026-11-11</span></div><ul>
+<li>앱 시작 시 정리된 책의 전체 내용 대신 목록에 필요한 제목·작가·원제만 받아오도록 변경 — 책 4권 기준 받는 데이터가 78KB → 2KB로 약 38배 줄어, 느린 VPN 환경에서도 목록이 빠르게 뜸</li>
+<li>책의 소개·등장인물·출처 등 전체 내용은 목록에서 그 책을 눌렀을 때 하나만 받아서 상세 화면을 열도록 함 (받는 동안 "불러오는 중..." 표시)</li>
+</ul></div>
 
 <div class="entry"><div class="entry-head"><span class="ver">v1.4.4</span><span class="date">2026-11-11</span></div><ul>
 <li>VPN 환경(중국 등)에서 "데이터 불러오는 중"에서 멈추던 문제의 근본 원인 수정 — Firebase SDK의 스트리밍 연결(WebChannel)이 VPN·프록시에서 막히는 문제였음</li>
@@ -93,7 +98,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 </ul></div>
 
 </div>
-<footer><span>CNATION</span><span>Version 1.4.4</span></footer>
+<footer><span>CNATION</span><span>Version 1.4.5</span></footer>
 </div>
 </body>
 </html>

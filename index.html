@@ -209,7 +209,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.4.4 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.4.5 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
@@ -279,13 +279,16 @@ async function getBook(id) {
   const d = await fsRequest(docUrl(id));
   return d ? { id, ...fromFields(d.fields) } : null;
 }
-// 최신순 목록
+// 최신순 목록 — 목록 화면에 필요한 필드(제목·작가·원제)만 받습니다.
+// 소개·등장인물·출처 등 전체 내용은 책을 눌렀을 때 그 책 하나만 따로 받습니다 (getBook).
+const LIST_FIELDS = ['title', 'author', 'originalTitle'];
 async function listBooks(max) {
   const rows = await fsRequest(`${FS_URL}:runQuery`, {
     method: 'POST',
     body: JSON.stringify({
       structuredQuery: {
         from: [{ collectionId: BOOK_COL }],
+        select: { fields: LIST_FIELDS.map((fieldPath) => ({ fieldPath })) },
         orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
         limit: max,
       },
@@ -332,6 +335,30 @@ function safe(v) { return String(v ?? '').replaceAll('&', '&amp;').replaceAll('<
 function slugKey(title, author) {
   const raw = `${title.trim().toLowerCase()}__${author.trim().toLowerCase()}`;
   return raw.replace(/\s+/g, ' ').replace(/[\/\.\#\$\[\]]/g, '-').slice(0, 400) || 'untitled';
+}
+
+// 목록에서 책을 누르면 그 책의 전체 내용만 받아서 상세 화면을 엽니다.
+async function openBook(item, btn) {
+  if (btn.disabled) return;
+  const authorEl = btn.querySelector('.book-author');
+  const original = authorEl.textContent;
+  btn.disabled = true;
+  authorEl.textContent = '불러오는 중...';
+  try {
+    const book = await getBook(item.id);
+    if (!book) {
+      alert('이 책 정보를 찾을 수 없습니다. 이미 삭제되었을 수 있어요.');
+      loadBookList();
+      return;
+    }
+    openDetail(book);
+  } catch (error) {
+    console.error('책 불러오기 실패:', error);
+    alert(`책 정보를 불러오지 못했습니다. (${error.message}) 잠시 후 다시 시도해주세요.`);
+  } finally {
+    btn.disabled = false;
+    authorEl.textContent = original;
+  }
 }
 
 function showStatus(message, kind) {
@@ -437,7 +464,7 @@ function renderBookList() {
     btn.type = 'button';
     btn.className = 'book-item';
     btn.innerHTML = `<span class="book-icon">📖</span><span class="book-text"><span class="book-title">${safe(item.title)}</span><span class="book-author">${safe(item.author)}</span></span><span class="book-chevron">›</span>`;
-    btn.addEventListener('click', () => openDetail(item));
+    btn.addEventListener('click', () => openBook(item, btn));
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'delete-btn';
