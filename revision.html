@@ -32,8 +32,14 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <div class="shell">
 <header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
 <a class="back-btn" href="./index.html">← 목록으로</a>
-<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.2</span></div>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.3</span></div>
 <div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.4.3</span><span class="date">2026-11-11</span></div><ul>
+<li>"이미 정리된 책" 제목 아래에 데이터 연결 상태 표시 추가 — "데이터 불러오는 중..."(주황) → "데이터 연결 완료 · N권"(초록), 실패 시 "데이터 연결 실패"(빨강)로 바뀌어 앱이 준비됐는지 바로 알 수 있음</li>
+<li>연결이 느리면 "연결이 느려 다시 시도하는 중... (2/3)"처럼 재시도 상황도 표시</li>
+<li>중국 등 VPN을 쓰는 느린 네트워크를 고려해, 한 번의 시도가 응답 없이 멈추면 20초 후 끊고 다시 시도하도록 함</li>
+</ul></div>
 
 <div class="entry"><div class="entry-head"><span class="ver">v1.4.2</span><span class="date">2026-11-11</span></div><ul>
 <li>연결이 불안정할 때 저장된 책이 있는데도 "이미 정리된 책 (0)"으로 잘못 보이던 문제 수정 — 목록을 항상 Firebase 서버에서 직접 받아오고, 실패하면 자동으로 2번 더 시도</li>
@@ -81,7 +87,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 </ul></div>
 
 </div>
-<footer><span>CNATION</span><span>Version 1.4.2</span></footer>
+<footer><span>CNATION</span><span>Version 1.4.3</span></footer>
 </div>
 </body>
 </html>
