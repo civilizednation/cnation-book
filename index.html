@@ -85,6 +85,19 @@ h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;fon
 .empty-list{padding:26px 16px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;font-size:13.5px;background:#fff}
 
 .status-box{display:flex;align-items:center;gap:10px;padding:16px 15px;border-radius:16px;background:#f1eefc;color:#5b3df5;font-size:13px;font-weight:700;font-family:var(--font-head);line-height:1.5;margin-bottom:18px}
+.suggest-box{padding:15px;border-radius:16px;background:#fff;border:1px solid #e3ddfb;margin-bottom:18px;box-shadow:var(--shadow)}
+.suggest-box .s-title{margin:0 0 4px;font-size:13.5px;font-weight:700;font-family:var(--font-head);color:var(--text)}
+.suggest-box .s-desc{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
+.suggest-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-bottom:8px;padding:11px 13px;border:1px solid var(--line);border-radius:13px;background:#fafbff;font:inherit;text-align:left;cursor:pointer;color:inherit}
+.suggest-item b{display:block;font-size:13.5px;font-family:var(--font-head)}
+.suggest-item span.a{display:block;font-size:12px;color:var(--muted)}
+.suggest-item .go{flex-shrink:0;color:var(--purple1);font-size:12px;font-weight:700}
+.suggest-actions{display:flex;gap:8px;margin-top:4px}
+.suggest-actions button{flex:1;padding:10px;border-radius:12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.suggest-new{border:0;background:linear-gradient(120deg,var(--purple1),var(--purple2));color:#fff}
+.suggest-cancel{border:1px solid var(--line);background:#fff;color:var(--muted)}
+.input-note{margin:0 0 14px;padding:11px 13px;border-radius:13px;background:#eef6ff;color:#25588f;font-size:12.5px;line-height:1.6}
+.input-note.warn{background:#fff4e0;color:#8a5a0e}
 .status-box.error{background:#fdecec;color:#c0392b}
 .spinner{flex-shrink:0;width:18px;height:18px;border-radius:50%;border:3px solid rgba(91,61,245,.25);border-top-color:#5b3df5;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -193,6 +206,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <main id="detailView">
   <button id="backButton" class="back-btn" type="button">← 목록으로</button>
   <section class="detail-card">
+    <div id="detailInputNote" class="input-note" style="display:none"></div>
     <div class="detail-top">
       <div><h2 id="detailTitle" class="detail-title"></h2><p id="detailAuthor" class="detail-author"></p>
         <div id="detailMeta" class="detail-meta"></div>
@@ -209,7 +223,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.4.5 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.5.0 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
@@ -281,7 +295,7 @@ async function getBook(id) {
 }
 // 최신순 목록 — 목록 화면에 필요한 필드(제목·작가·원제)만 받습니다.
 // 소개·등장인물·출처 등 전체 내용은 책을 눌렀을 때 그 책 하나만 따로 받습니다 (getBook).
-const LIST_FIELDS = ['title', 'author', 'originalTitle'];
+const LIST_FIELDS = ['title', 'author', 'originalTitle', 'aliases'];
 async function listBooks(max) {
   const rows = await fsRequest(`${FS_URL}:runQuery`, {
     method: 'POST',
@@ -305,6 +319,20 @@ async function saveBook(id, data) {
       writes: [{
         update: { name: `${FS_DB}/documents/${BOOK_COL}/${id}`, fields: toFields(rest) },
         updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
+      }],
+    }),
+  });
+}
+// 사용자가 입력한 다른 표기(오타·외래어 표기 차이)를 기존 책에 덧붙여 저장 — 다음엔 그 표기로도 바로 찾음
+async function addAlias(id, alias) {
+  await fsRequest(`${FS_URL}:commit`, {
+    method: 'POST',
+    body: JSON.stringify({
+      writes: [{
+        transform: {
+          document: `${FS_DB}/documents/${BOOK_COL}/${id}`,
+          fieldTransforms: [{ fieldPath: 'aliases', appendMissingElements: { values: [toValue(alias)] } }],
+        },
       }],
     }),
   });
@@ -335,6 +363,66 @@ function safe(v) { return String(v ?? '').replaceAll('&', '&amp;').replaceAll('<
 function slugKey(title, author) {
   const raw = `${title.trim().toLowerCase()}__${author.trim().toLowerCase()}`;
   return raw.replace(/\s+/g, ' ').replace(/[\/\.\#\$\[\]]/g, '-').slice(0, 400) || 'untitled';
+}
+
+// ── 비슷한 책 찾기 (오타·띄어쓰기·외래어 표기 차이 허용) ─────────────────────
+// 한글을 자모 단위로 풀고, 외래어 표기에서 자주 갈리는 소리(ㄸ/ㅌ, ㅃ/ㅍ, ㄲ/ㅋ, ㅉ/ㅊ, ㅐ/ㅔ)를 하나로 맞춘 뒤
+// 글자 차이(편집 거리)로 비슷한 정도를 0~1로 계산합니다. 예: 생떽쥐뻬리 = 생텍쥐페리, 도스토옙스키 ≈ 도스토예프스키
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+const JONG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+const SOUND_ALIKE = { 'ㄸ': 'ㅌ', 'ㅃ': 'ㅍ', 'ㄲ': 'ㅋ', 'ㅉ': 'ㅊ', 'ㅐ': 'ㅔ', 'ㅒ': 'ㅖ', 'ㅙ': 'ㅞ' };
+function phonetic(text) {
+  const plain = String(text ?? '').normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  let out = '';
+  for (const ch of plain) {
+    const code = ch.charCodeAt(0) - 0xac00;
+    if (code >= 0 && code < 11172) {
+      const a = CHO[Math.floor(code / 588)], b = JUNG[Math.floor((code % 588) / 28)], c = JONG[code % 28];
+      out += (SOUND_ALIKE[a] || a) + (SOUND_ALIKE[b] || b) + c;
+    } else out += ch;
+  }
+  return out;
+}
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+// 1 = 사실상 같음, 0.9 = 한쪽이 다른 쪽을 포함 (예: 카뮈 ⊂ 알베르 카뮈), 그 외 편집 거리 기반
+function nameSimilarity(x, y) {
+  const a = phonetic(x), b = phonetic(y);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (short.length >= 4 && long.includes(short)) return 0.9;
+  return 1 - editDistance(a, b) / long.length;
+}
+// 책의 정식 표기 + 저장된 다른 표기들 중 가장 비슷한 값
+function bookSimilarity(book, title, author) {
+  const names = [{ title: book.title, author: book.author }, { title: book.originalTitle, author: book.author },
+    ...(Array.isArray(book.aliases) ? book.aliases : [])];
+  let best = { t: 0, a: 0 };
+  for (const n of names) {
+    if (!n || !n.title) continue;
+    const t = nameSimilarity(n.title, title), a = nameSimilarity(n.author, author);
+    if (t * 0.6 + a * 0.4 > best.t * 0.6 + best.a * 0.4) best = { t, a };
+  }
+  return best;
+}
+function findSimilarBooks(title, author) {
+  const exact = [], similar = [];
+  for (const book of allBooks) {
+    const { t, a } = bookSimilarity(book, title, author);
+    if (t === 1 && a === 1) exact.push(book);
+    else if (t >= 0.8 || (t >= 0.6 && a >= 0.9)) similar.push({ book, score: t * 0.6 + a * 0.4 });
+  }
+  similar.sort((x, y) => y.score - x.score);
+  return { exact: exact[0] || null, similar: similar.slice(0, 3).map((x) => x.book) };
 }
 
 // 목록에서 책을 누르면 그 책의 전체 내용만 받아서 상세 화면을 엽니다.
@@ -455,7 +543,7 @@ function renderBookList() {
   const keyword = normalize(listSearch.value);
   listSearchClear.hidden = !listSearch.value;
   const items = keyword
-    ? allBooks.filter((b) => [b.title, b.author, b.originalTitle].some((v) => normalize(v).includes(keyword)))
+    ? allBooks.filter((b) => [b.title, b.author, b.originalTitle, ...(Array.isArray(b.aliases) ? b.aliases.flatMap((x) => [x.title, x.author]) : [])].some((v) => normalize(v).includes(keyword)))
     : allBooks;
   noMatch.hidden = !(keyword && allBooks.length && !items.length);
   noMatch.textContent = `"${listSearch.value.trim()}"에 맞는 책이 없습니다.`;
@@ -678,8 +766,12 @@ function renderParts(parts, spoilerNote) {
   }
 }
 
-function openDetail(data, updateHistory = true) {
+function openDetail(data, updateHistory = true, note = null) {
   renderDetail(data);
+  const noteEl = $('detailInputNote');
+  noteEl.style.display = note ? 'block' : 'none';
+  noteEl.className = `input-note${note?.warn ? ' warn' : ''}`;
+  noteEl.textContent = note ? note.text : '';
   homeView.classList.remove('active');
   detailView.classList.add('active');
   window.scrollTo(0, 0);
@@ -693,25 +785,75 @@ function showHome(updateHistory = true) {
   if (updateHistory) history.pushState({}, '', location.pathname + location.search);
 }
 
+// 비슷한 책 후보를 보여주고 사용자의 선택을 기다립니다. → 고른 책 / 'new'(새로 조회) / null(취소)
+function askSimilar(candidates) {
+  return new Promise((resolve) => {
+    statusArea.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'suggest-box';
+    box.innerHTML = '<p class="s-title">📚 혹시 이 책인가요?</p><p class="s-desc">이미 정리된 책 중에 입력하신 제목·저자와 비슷한 책이 있어요. 오타나 표기 차이일 수 있습니다.</p>';
+    candidates.forEach((book) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'suggest-item';
+      btn.innerHTML = `<span><b>${safe(book.title)}</b><span class="a">${safe(book.author)}</span></span><span class="go">이 책 보기 ›</span>`;
+      btn.addEventListener('click', () => resolve(book));
+      box.appendChild(btn);
+    });
+    const actions = document.createElement('div');
+    actions.className = 'suggest-actions';
+    actions.innerHTML = '<button type="button" class="suggest-cancel">취소</button><button type="button" class="suggest-new">다른 책이에요, 새로 조회</button>';
+    actions.querySelector('.suggest-cancel').addEventListener('click', () => resolve(null));
+    actions.querySelector('.suggest-new').addEventListener('click', () => resolve('new'));
+    box.appendChild(actions);
+    statusArea.appendChild(box);
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+// 이미 정리된 책(저장 목록 속 정보)을 열 때, 입력과 표기가 다르면 다음부터 바로 찾도록 다른 표기로 저장
+async function openSaved(book, title, author) {
+  const full = await getBook(book.id);
+  if (!full) throw new Error('저장된 책을 찾지 못했습니다. 이미 삭제되었을 수 있어요.');
+  const { t, a } = bookSimilarity(full, title, author);
+  let note = null;
+  if (!(t === 1 && a === 1)) {
+    addAlias(full.id, { title, author }).then(() => loadBookList()).catch(() => {});
+    note = { text: `입력하신 표기(「${title}」 · ${author})와 조금 달라도 같은 책으로 보고, 이미 정리된 내용을 보여드려요. 다음부터는 입력하신 표기로도 바로 찾아요.` };
+  }
+  showStatus('', null);
+  openDetail(full, true, note);
+}
+
 searchForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const title = titleInput.value.trim();
   const author = authorInput.value.trim();
   if (!title || !author) return;
 
-  const key = slugKey(title, author);
   searchBtn.disabled = true;
   showStatus('저장된 정보를 확인하는 중...', 'loading');
 
   try {
-    const cached = await getBook(key);
-    if (cached) {
+    // 1) 입력 그대로의 키로 저장된 책이 있으면 바로 보여주기
+    const direct = await getBook(slugKey(title, author));
+    if (direct) {
       showStatus('', null);
-      openDetail(cached);
-      searchBtn.disabled = false;
+      openDetail(direct);
       return;
     }
 
+    // 2) 정리된 책 목록에서 오타·띄어쓰기·외래어 표기 차이를 허용해 찾기
+    if (listLoading) await listLoading.catch(() => {});
+    const { exact, similar } = findSimilarBooks(title, author);
+    if (exact) return await openSaved(exact, title, author);
+    if (similar.length) {
+      const choice = await askSimilar(similar);
+      if (choice === null) { showStatus('', null); return; }
+      if (choice !== 'new') return await openSaved(choice, title, author);
+    }
+
+    // 3) 새로 조회
     showStatus('서점·위키·AI 검색 자료를 모아 정리하고 교차 확인하는 중... (1~2분 정도 걸려요)', 'loading');
     const res = await fetch('/api/lookup', {
       method: 'POST',
@@ -721,9 +863,30 @@ searchForm.addEventListener('submit', async (event) => {
     const result = await res.json().catch(() => ({ ok: false, error: `요청 실패 (HTTP ${res.status})` }));
     if (!result.ok) throw new Error(result.error || '조회에 실패했습니다.');
 
-    await saveBook(key, result.data);
-    showStatus('', null);
-    openDetail({ id: key, ...result.data });
+    // 4) 저장은 입력값이 아니라 AI가 근거로 확인한 정식 제목·저자로 (오타로 저장되는 것과 중복 방지)
+    const data = result.data;
+    const canonTitle = data.title || title, canonAuthor = data.author || author;
+    const key = slugKey(canonTitle, canonAuthor);
+    const t = nameSimilarity(canonTitle, title), a = nameSimilarity(canonAuthor, author);
+    const differs = !(t === 1 && a === 1);
+    let note = null;
+    if (differs) {
+      note = { text: `근거 자료로 확인한 정식 표기로 정리했어요: 「${canonTitle}」 · ${canonAuthor} (입력: 「${title}」 · ${author})` };
+      if (t < 0.5) note = { warn: true, text: `⚠️ 검색된 책(「${canonTitle}」 · ${canonAuthor})의 제목이 입력하신 제목(「${title}」)과 많이 달라요. 찾으시던 책이 아니면 삭제 후 제목·저자를 확인해 다시 조회해주세요.` };
+    }
+
+    const existing = await getBook(key);
+    if (existing) {
+      // 정식 이름으로는 이미 정리된 책 → 새로 저장하지 않고 입력 표기만 덧붙임
+      if (differs) await addAlias(key, { title, author }).catch(() => {});
+      showStatus('', null);
+      openDetail(existing, true, { text: `이미 정리된 책이라 저장된 내용을 보여드려요 (「${existing.title}」 · ${existing.author}).${differs ? ' 입력하신 표기도 함께 기억해 둘게요.' : ''}` });
+    } else {
+      if (differs) data.aliases = [{ title, author }];
+      await saveBook(key, data);
+      showStatus('', null);
+      openDetail({ id: key, ...data }, true, note);
+    }
     loadBookList();
   } catch (error) {
     showStatus(`오류: ${error.message}`, 'error');
