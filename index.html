@@ -73,6 +73,7 @@ h1{margin:0;color:#fff;font-size:24px;line-height:1.15;letter-spacing:-.02em;fon
 .book-row .book-item{width:100%}
 .delete-btn{padding:0 14px;border:1px solid #f3d4d8;border-radius:16px;background:#fff6f7;color:#d64555;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .delete-btn:disabled{opacity:.5;cursor:default}
+.retry-btn{margin-top:10px;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--purple1);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .empty-list{padding:26px 16px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;font-size:13.5px;background:#fff}
 
 .status-box{display:flex;align-items:center;gap:10px;padding:16px 15px;border-radius:16px;background:#f1eefc;color:#5b3df5;font-size:13px;font-weight:700;font-family:var(--font-head);line-height:1.5;margin-bottom:18px}
@@ -174,7 +175,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
       </div>
       <div id="noMatch" class="no-match" hidden></div>
       <div id="bookList" class="book-list"></div>
-      <div id="emptyList" class="empty-list">아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.</div>
+      <div id="emptyList" class="empty-list" style="display:none"></div>
     </div>
   </section>
 </main>
@@ -197,12 +198,12 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
     <p class="disclaimer">AI가 공개된 웹 자료를 바탕으로 정리한 내용으로, 실제 작품과 세부 사항이 다를 수 있습니다.</p>
   </section>
 </main>
-<footer><span>CNATION</span><span>cnation Book · v1.4.1 · <a href="./revision.html">Revision History</a></span></footer>
+<footer><span>CNATION</span><span>cnation Book · v1.4.2 · <a href="./revision.html">Revision History</a></span></footer>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocsFromServer, setDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCTwOAC_LrrKH8CKepUOTf0pyd9qRv4y_8",
@@ -266,22 +267,53 @@ const normalize = (v) => String(v ?? '').toLowerCase().replace(/\s+/g, '');
 listSearch.addEventListener('input', () => renderBookList());
 listSearchClear.addEventListener('click', () => { listSearch.value = ''; renderBookList(); listSearch.focus(); });
 
-async function loadBookList() {
-  try {
-    const snap = await getDocs(query(collection(db, BOOK_COL), orderBy('createdAt', 'desc'), limit(LIST_LIMIT)));
-    const items = [];
-    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
-    allBooks = items;
-    emptyList.style.display = items.length === 0 ? 'block' : 'none';
-    listCount.textContent = `(${items.length}${items.length >= LIST_LIMIT ? '+' : ''})`;
-    renderBookList();
-  } catch (error) {
-    console.error('책 목록 로딩 실패:', error);
-    bookList.innerHTML = '';
-    emptyList.style.display = 'block';
-    emptyList.textContent = '책 목록을 불러오지 못했습니다.';
-  }
+const EMPTY_TEXT = '아직 정리된 책이 없습니다. 위에서 첫 책을 조회해보세요.';
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let listLoading = null;
+
+// 목록은 반드시 서버에서 받아옵니다. 일반 getDocs는 연결이 불안정하면 오류 없이
+// 기기에 남은 (비어 있는) 데이터를 돌려줘서 "정리된 책 0권"으로 잘못 보이기 때문입니다.
+// 실패하면 잠시 후 다시 시도하고, 그래도 안 되면 빈 목록 대신 "다시 불러오기"를 보여줍니다.
+function loadBookList() {
+  if (!listLoading) listLoading = fetchBookList().finally(() => { listLoading = null; });
+  return listLoading;
 }
+
+async function fetchBookList() {
+  const q = query(collection(db, BOOK_COL), orderBy('createdAt', 'desc'), limit(LIST_LIMIT));
+  let lastError;
+  for (const delay of [0, 1500, 3000]) {
+    if (delay) await wait(delay);
+    try {
+      const snap = await getDocsFromServer(q);
+      const items = [];
+      snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+      allBooks = items;
+      emptyList.textContent = EMPTY_TEXT;
+      emptyList.style.display = items.length === 0 ? 'block' : 'none';
+      listCount.textContent = `(${items.length}${items.length >= LIST_LIMIT ? '+' : ''})`;
+      renderBookList();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  console.error('책 목록 로딩 실패:', lastError);
+  // 이전에 받아둔 목록이 있으면 그대로 두고, 처음부터 실패했을 때만 안내를 보여줍니다.
+  if (allBooks.length) return;
+  listCount.textContent = '';
+  bookList.innerHTML = '';
+  emptyList.style.display = 'block';
+  emptyList.innerHTML = '연결이 불안정해 책 목록을 불러오지 못했습니다.<br><button type="button" class="retry-btn">다시 불러오기</button>';
+  emptyList.querySelector('.retry-btn').addEventListener('click', () => {
+    emptyList.textContent = '불러오는 중...';
+    loadBookList();
+  });
+}
+
+// 네트워크가 다시 연결되거나, 홈 화면 앱으로 다시 돌아왔을 때 목록을 새로 받아옵니다.
+window.addEventListener('online', () => loadBookList());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadBookList(); });
 
 function renderBookList() {
   bookList.innerHTML = '';

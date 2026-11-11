@@ -32,8 +32,14 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <div class="shell">
 <header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
 <a class="back-btn" href="./index.html">← 목록으로</a>
-<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.1</span></div>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.2</span></div>
 <div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.4.2</span><span class="date">2026-11-11</span></div><ul>
+<li>연결이 불안정할 때 저장된 책이 있는데도 "이미 정리된 책 (0)"으로 잘못 보이던 문제 수정 — 목록을 항상 Firebase 서버에서 직접 받아오고, 실패하면 자동으로 2번 더 시도</li>
+<li>그래도 불러오지 못하면 빈 목록 대신 "연결이 불안정해 불러오지 못했습니다 · 다시 불러오기" 버튼을 표시</li>
+<li>네트워크가 다시 연결되거나 홈 화면 앱으로 돌아왔을 때 목록을 자동으로 새로 고침</li>
+</ul></div>
 
 <div class="entry"><div class="entry-head"><span class="ver">v1.4.1</span><span class="date">2026-11-07</span></div><ul>
 <li>"이미 정리된 책" 목록에 검색창 추가 — 제목·작가(원제 포함) 일부 글자만 입력해도 바로 걸러서 보여줌, 띄어쓰기·대소문자 차이는 무시</li>
@@ -75,7 +81,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 </ul></div>
 
 </div>
-<footer><span>CNATION</span><span>Version 1.4.1</span></footer>
+<footer><span>CNATION</span><span>Version 1.4.2</span></footer>
 </div>
 </body>
 </html>
