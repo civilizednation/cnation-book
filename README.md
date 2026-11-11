@@ -18,7 +18,7 @@ https://cnation-book.vercel.app (배포 후)
 
 ## 구조
 
-- `index.html` — 검색 화면 + 정리된 책 목록 + 상세 화면 (Firebase 클라이언트 SDK로 직접 Firestore 읽기/쓰기)
+- `index.html` — 검색 화면 + 정리된 책 목록 + 상세 화면 (Firestore REST API를 fetch로 직접 호출해 읽기/쓰기 — VPN·프록시 환경에서 SDK 스트리밍 연결이 막히는 문제를 피하기 위해 SDK는 쓰지 않음)
 - `api/lookup.js` — Vercel 함수: `POST /api/lookup { title, author }` → 구조화된 JSON
 - `lib/book-lookup.js` — 조회 오케스트레이션 (근거 수집 → 정리 → 편별 보강 → 교차 확인 → 출처 정리)
 - `lib/search.js` — Tavily 웹 검색 (서점·위키·일반 웹을 나눠 병렬 검색, 페이지 본문 포함, 단편별 추가 검색)

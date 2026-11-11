@@ -32,8 +32,14 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 <div class="shell">
 <header><div><p class="brand-small">CNATION BOOK</p><h1>Revision History</h1></div></header>
 <a class="back-btn" href="./index.html">← 목록으로</a>
-<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.3</span></div>
+<div class="current-badge"><span>📌</span><span>현재 버전: Version 1.4.4</span></div>
 <div class="timeline">
+
+<div class="entry"><div class="entry-head"><span class="ver">v1.4.4</span><span class="date">2026-11-11</span></div><ul>
+<li>VPN 환경(중국 등)에서 "데이터 불러오는 중"에서 멈추던 문제의 근본 원인 수정 — Firebase SDK의 스트리밍 연결(WebChannel)이 VPN·프록시에서 막히는 문제였음</li>
+<li>Firebase SDK를 걷어내고 Firestore REST API를 일반 HTTPS 요청으로 직접 호출하도록 변경 (목록·조회·저장·삭제 모두) — 요청 한 번에 응답 한 번이라 VPN에서도 안정적이고, 라이브러리 다운로드가 없어 첫 화면도 빨라짐</li>
+<li>연결 실패 시 상태 표시에 실패 사유(예: 응답 시간 초과)를 함께 표시</li>
+</ul></div>
 
 <div class="entry"><div class="entry-head"><span class="ver">v1.4.3</span><span class="date">2026-11-11</span></div><ul>
 <li>"이미 정리된 책" 제목 아래에 데이터 연결 상태 표시 추가 — "데이터 불러오는 중..."(주황) → "데이터 연결 완료 · N권"(초록), 실패 시 "데이터 연결 실패"(빨강)로 바뀌어 앱이 준비됐는지 바로 알 수 있음</li>
@@ -87,7 +93,7 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:26px;paddi
 </ul></div>
 
 </div>
-<footer><span>CNATION</span><span>Version 1.4.3</span></footer>
+<footer><span>CNATION</span><span>Version 1.4.4</span></footer>
 </div>
 </body>
 </html>
